@@ -1,7 +1,7 @@
 
 pub fn star_one (input: String) -> String {
     let invalid_ids = input.split(',').enumerate()
-        .fold(0u128, | invalid_acc, (range_num, curr_range)| {
+        .fold(0u128, | invalid_acc, (_, curr_range)| {
             
             let mut  splt = curr_range.split('-');
             let sstr = splt.next().unwrap();
@@ -47,7 +47,7 @@ pub fn star_one (input: String) -> String {
 
 pub fn star_two (input: String) -> String {
     let invalid_ids = input.split(',').enumerate()
-        .fold(0u128, | invalid_acc, (range_num, curr_range)| {
+        .fold(0u128, | invalid_acc, (_, curr_range)| {
             
             let mut  splt = curr_range.split('-');
             let sstr = splt.next().unwrap();

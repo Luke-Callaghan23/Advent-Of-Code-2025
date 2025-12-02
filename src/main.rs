@@ -19,6 +19,9 @@ struct Opt {
 
     #[structopt(short, long, default_value="./data", help="Root folder of data directory.  Should contain 25 files [1...25] each with an \"example.txt\" and \"full.txt\" file for running with AOC data.")]
     input_folder: String,
+
+    #[structopt(short = "o", long = "other", help="Flag to tell whether to run the \"other\" implementation.  Only applicable for days where you've done another implementation.")]
+    other_impl: bool,
 }
 
 fn parse_day(s: &str) -> Result<u8, &'static str> {
@@ -74,10 +77,20 @@ fn main() {
         },
         2 => {
             if !is_second_test {
-                days::day_2::star_one(file_contents)
+                if opt.other_impl {
+                    days::day_2_regex_impl::star_one(file_contents)
+                }
+                else {
+                    days::day_2::star_one(file_contents)
+                }
             }
             else {
-                days::day_2::star_two(file_contents)
+                if opt.other_impl {
+                    days::day_2_regex_impl::star_two(file_contents)
+                }
+                else {
+                    days::day_2::star_two(file_contents)
+                }
             }
         },
         3 => {
