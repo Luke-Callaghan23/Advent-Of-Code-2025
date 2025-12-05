@@ -92,41 +92,27 @@ pub fn star_two (input: String) -> String {
 
     freshness_ranges.sort_by(| range_a, range_b | range_a.start().cmp(&range_b.start()));
 
-    let mut merged_last_range = false;
+    let mut freshness_iterator = freshness_ranges.into_iter();
+    let first = freshness_iterator.next().unwrap();
 
-    let mut merged_ranges: Vec<RangeInclusive<u64>> = Vec::new();
-    let mut outer_idx = 0;
-    while outer_idx < freshness_ranges.len() - 1 {
-        let outer_range = &freshness_ranges[outer_idx];
+    let merged_ranges= freshness_iterator.fold(vec![ first ], | mut acc, range | {
+        // Should always have a last element
+        let last_range = acc.last().unwrap();
+        let last_range_end = last_range.end();
 
-        let merged_start = *outer_range.start();
-        let mut merged_end = *outer_range.end();
-
-        for inner_range in &freshness_ranges[(outer_idx+1)..] {
-            if *inner_range.start() <= merged_end {
-                if merged_end < *inner_range.end() {
-                    merged_end = *inner_range.end();
-                }
-                outer_idx += 1;
-
-                if outer_idx + 1 == freshness_ranges.len() {
-                    merged_last_range = true;
-                }
-
+        if last_range_end >= range.start() {
+            if last_range_end < range.end() {
+                let last_range = acc.pop().unwrap();
+                acc.push(*last_range.start()..=*range.end());
             }
-            else { break }
         }
-
-        merged_ranges.push(merged_start..=merged_end);
-        outer_idx += 1;
-    }
-
-    if !merged_last_range {
-        merged_ranges.push(freshness_ranges.last().unwrap().clone());
-    }
+        else {
+            acc.push(range);
+        }
+        return acc;
+    });
 
     merged_ranges.iter().fold(0u128, | total_acc, merged_range | {
         total_acc + (merged_range.end() - merged_range.start()) as u128 + 1
     }).to_string()
 }
-
