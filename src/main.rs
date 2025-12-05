@@ -33,14 +33,22 @@ fn parse_day(s: &str) -> Result<u8, &'static str> {
 }
 
 fn format_duration(duration: Duration) -> String {
-    let total_millis = duration.as_millis();
+    let total_nanos = duration.as_nanos();
 
-    let hours = (total_millis / (1000 * 60 * 60)) % 24;
-    let minutes = (total_millis / (1000 * 60)) % 60;
-    let seconds = (total_millis / 1000) % 60;
-    let milliseconds = total_millis % 1000;
+    let hours = (total_nanos / (1_000_000_000 * 60 * 60)) % 24;
+    let minutes = (total_nanos / (1_000_000_000 * 60)) % 60;
+    let seconds = (total_nanos / 1_000_000_000) % 60;
 
-    format!("{:02}:{:02}:{:02}.{:03}", hours, minutes, seconds, milliseconds)
+    let nanoseconds = total_nanos % 1_000_000_000;
+
+    // Add commas to the nano seconds
+    // Maybe there's a better way to do this, but for now I'm just reversing the string, replacing every three pairs
+    //      of digits with those same digits plus a comma, then reversing again
+    let nano_str = nanoseconds.to_string().chars().rev().collect::<String>();
+    let reg = regex::Regex::new(r"(\d{3})").unwrap();
+    let nano_comma_str= reg.replace_all(&nano_str, "$1,").chars().rev().collect::<String>();
+
+    format!("{:02}:{:02}:{:02} {} nanos", hours, minutes, seconds, nano_comma_str)
 }
 
 fn main() {
@@ -281,8 +289,7 @@ fn main() {
     };
 
     let elapsed = start.elapsed();
-    println!("Result:
-{result}");
+    println!("Result: \n{result}");
     println!("Elapsed: {}", format_duration(elapsed));
 }
 
