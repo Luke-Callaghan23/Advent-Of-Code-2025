@@ -47,6 +47,12 @@ fn format_duration(duration: Duration) -> String {
     let nano_str = nanoseconds.to_string().chars().rev().collect::<String>();
     let reg = regex::Regex::new(r"(\d{3})").unwrap();
     let nano_comma_str= reg.replace_all(&nano_str, "$1,").chars().rev().collect::<String>();
+    let nano_comma_str = if nano_comma_str.starts_with(",") {
+        &nano_comma_str[1..]
+    }
+    else {
+        &nano_comma_str
+    };
 
     format!("{:02}:{:02}:{:02} {} nanos", hours, minutes, seconds, nano_comma_str)
 }

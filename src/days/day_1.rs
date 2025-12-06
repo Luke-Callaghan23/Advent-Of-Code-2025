@@ -85,8 +85,6 @@ pub fn star_two (input: String) -> String {
         .enumerate()
         .fold((0usize, start), | (count_acc, dial_position), (line_num, curr_line) | {
 
-            println!("{}", dial_position);
-
             let mut chars = curr_line.chars();
             let direction = Direction::from(chars.next().unwrap());
 
@@ -97,15 +95,11 @@ pub fn star_two (input: String) -> String {
                 Err(err) => panic!("Parsing error for line {line_num} value '{value_str}': {err}"),
             } as i32;
 
-            print!("    val={value} ");
-
             let mut passed_zero = value / digits;
             let value = value % digits;
 
             let signed_val = direction.get_sign() * value;
             let rotation_res = dial_position + signed_val;
-
-            print!("signed={signed_val} addition={rotation_res}");
 
             if dial_position != 0 && rotation_res == 0 {
                 passed_zero += 1;
@@ -143,16 +137,10 @@ pub fn star_two (input: String) -> String {
                 rotation_res
             };
 
-            // 5426 - 5956
-
-            println!(" next_val={next} add_acc={passed_zero}");
-
             let count_passed_zero = count_acc + passed_zero as usize;
 
             return (count_passed_zero, next);
         });
-
-    println!("{}", dial);
 
     return count_landed_at_zero.to_string();
 }
