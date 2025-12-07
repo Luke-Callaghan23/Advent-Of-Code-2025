@@ -81,7 +81,7 @@ pub fn star_two (input: String) -> String {
     let max = 99;
     let digits = 100;
 
-    let (count_landed_at_zero, dial) = input.lines()
+    let (count_landed_at_zero, _dial) = input.lines()
         .enumerate()
         .fold((0usize, start), | (count_acc, dial_position), (line_num, curr_line) | {
 
