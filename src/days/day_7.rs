@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashSet, rc::Rc};
+use std::{collections::HashSet, rc::Rc};
 
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
@@ -23,10 +23,6 @@ impl RowCol {
     fn from_coord (row: usize, col: usize) -> Self {
         RowCol(row, col)
     }
-
-    fn from (char_num: usize, width: usize) -> Self {
-        RowCol(char_num / width, char_num % width)
-    }
 }
 
 struct TachyonManifold {
@@ -36,18 +32,6 @@ struct TachyonManifold {
     height: usize,
 }
 
-struct QuantumTachyonManifold {
-    splitters: Rc<HashSet<RowCol>>,
-    tachyon: RowCol,
-    width: usize,
-    height: usize,
-}
-
-enum CatInABox {
-    Down(QuantumTachyonManifold),
-    Split(Option<QuantumTachyonManifold>, Option<QuantumTachyonManifold>),
-    JobsDone
-}
 
 impl TachyonManifold {
     fn from (input: String) -> Self {
@@ -145,6 +129,60 @@ impl TachyonManifold {
     }
 }
 
+impl std::fmt::Display for TachyonManifold {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in 0..self.height {
+            for col in 0..self.width {
+                let pos = RowCol::from_coord(row, col);
+
+                if self.splitters.contains(&pos) {
+                    write!(f, "^")?
+                }
+                else if self.tachyons.contains(&pos) {
+                    write!(f, "|")?
+                }
+                else {
+                    write!(f, ".")?
+                }
+            }
+            writeln!(f, "")?
+        }
+        Ok(())
+    }
+}
+
+pub fn star_one (input: String) -> String {
+    let mut split_count = 0;
+    let mut tachyon_manifold = TachyonManifold::from(input);
+    loop {
+        let (ntm, splits, can_continue) = tachyon_manifold.step();
+        tachyon_manifold = ntm;
+        split_count += splits;
+
+        if !can_continue {
+            break;
+        }
+    }
+    split_count.to_string()
+}
+
+
+
+struct QuantumTachyonManifold {
+    splitters: Rc<HashSet<RowCol>>,
+    tachyon: RowCol,
+    width: usize,
+    height: usize,
+}
+
+#[allow(unused)]
+enum CatInABox {
+    Down(QuantumTachyonManifold),
+    Split(Option<QuantumTachyonManifold>, Option<QuantumTachyonManifold>),
+    JobsDone
+}
+
+#[allow(unused)]
 impl QuantumTachyonManifold {
 
     fn from (binary_tachyon_manifold: TachyonManifold) -> Self {
@@ -212,44 +250,8 @@ impl QuantumTachyonManifold {
 
 }
 
-impl std::fmt::Display for TachyonManifold {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in 0..self.height {
-            for col in 0..self.width {
-                let pos = RowCol::from_coord(row, col);
-
-                if self.splitters.contains(&pos) {
-                    write!(f, "^")?
-                }
-                else if self.tachyons.contains(&pos) {
-                    write!(f, "|")?
-                }
-                else {
-                    write!(f, ".")?
-                }
-            }
-            writeln!(f, "")?
-        }
-        Ok(())
-    }
-}
-
-pub fn star_one (input: String) -> String {
-    let mut split_count = 0;
-    let mut tachyon_manifold = TachyonManifold::from(input);
-    loop {
-        let (ntm, splits, can_continue) = tachyon_manifold.step();
-        tachyon_manifold = ntm;
-        split_count += splits;
-
-        if !can_continue {
-            break;
-        }
-    }
-    split_count.to_string()
-}
-
-pub fn star_two (input: String) -> String {
+// Totally made this naive implementation on purpose to show what a less experienced programmer would do
+fn _star_two_naive (input: String) -> String {
     let mut parallel_universes = 1;
     let root_universe = TachyonManifold::from(input);
     let root_universe_quantum = QuantumTachyonManifold::from(root_universe);
@@ -283,3 +285,106 @@ pub fn star_two (input: String) -> String {
     parallel_universes.to_string()
 }
 
+
+struct EfficientQuantumTachyonManifold {
+    splitters: Vec<HashSet<usize>>,
+    initial_tachyon: RowCol,
+    width: usize,
+    height: usize,
+}
+
+impl EfficientQuantumTachyonManifold {
+    fn from (binary_tachyon_manifold: TachyonManifold) -> Self {
+        let TachyonManifold {
+            splitters,
+            tachyons,
+            width,
+            height,
+        } = binary_tachyon_manifold;
+
+        let tachyon = tachyons.into_iter().next().expect("There must be at least one tachyon in the original tachyon manifold to create a(n efficient) quantum tachyon mnaifold from it");
+
+        let mut rowise_splitters: Vec<HashSet<usize>> = Vec::with_capacity(height);
+        for _ in 0..height {
+            rowise_splitters.push(HashSet::new());
+        }
+
+        for split in splitters {
+            let RowCol(row, col) = split;
+            let row_hash = rowise_splitters.get_mut(row).expect("All rows do not have a hash set");
+            row_hash.insert(col);
+        }
+        EfficientQuantumTachyonManifold { splitters: rowise_splitters, initial_tachyon: tachyon, width, height }
+    }
+
+    fn step_to_bottom_quantumly (self) -> usize {
+        let EfficientQuantumTachyonManifold {
+            splitters,
+            initial_tachyon,
+            width,
+            height,
+        } = self;
+
+        let RowCol(start_row, start_tachyon) = initial_tachyon;
+
+        // Counts the number of tachyons on this row (indexed by column) in all possible universes
+        // Since we just do one pass going down the map, we really need to keep track of is where in the (current) row all the tachyons are located
+        // Also, since there are never any tachyons right next to each other (I believe this should be true across all inputs), we can always use the
+        //      the same `tachyons_on_row` without worrying about overwriting any colliding data
+        let mut tachyons_on_row = vec![0usize; width];
+        
+        // Start out with one tachyon in the starting spot
+        tachyons_on_row[start_tachyon] = 1;
+        
+        // Prevent off-by-one errors :)
+        let mut parallel_universes_explored = 1;
+        
+        for row in (start_row + 1)..height {
+
+            // All the splitters on this row
+            let row_splitters = &splitters[row];
+
+            // Iterate over all splitters on the current row
+            // Because the tachyons do nothing but go down unless if they hit a splitter, we can save some cycles by only checking
+            //      the splitters on the row and checking if any of them collide with tachyons (instead of the other way around)
+            for splitter_col in row_splitters {
+                let splitter_col = *splitter_col;
+
+                // Get the count of tachyons currently in this row, in this splitter's column
+                let tachyons_in_spot = tachyons_on_row[splitter_col];
+                
+                if tachyons_in_spot == 0 {
+                    // If there are no collisions with the current splitter in the currnent row, skip
+                    continue;
+                }
+
+                // If there is a collision all the tachyons in this spot effectively double
+                // And [count of tachyons] more parallel universes are explored
+                parallel_universes_explored += tachyons_in_spot;
+                
+                // If there is space to go left, ADD the count of tachyons into the space to the left
+                // ADD the tachyons, not replace, because there may already be tachyons in the spot to the left
+                if splitter_col != 0 {
+                    tachyons_on_row[splitter_col - 1] += tachyons_in_spot;
+                }
+
+                // Same with the right
+                if splitter_col != width - 1 {
+                    tachyons_on_row[splitter_col + 1] += tachyons_in_spot;
+                }
+
+                // After the splitter, there is no longer a beam in this spot
+                tachyons_on_row[splitter_col] = 0;
+
+            }
+        }
+
+        parallel_universes_explored
+    }
+}
+
+pub fn star_two (input: String) -> String {
+    let binary_tachyon_manifold = TachyonManifold::from(input);
+    let efficient_quantum_tachyon_manifold = EfficientQuantumTachyonManifold::from(binary_tachyon_manifold);
+    efficient_quantum_tachyon_manifold.step_to_bottom_quantumly().to_string()
+}
